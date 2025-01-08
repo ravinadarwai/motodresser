@@ -1,0 +1,14 @@
+Log file created for payment verification process.
+{
+    "time": "2025-01-07 13:04:57",
+    "input_data": {
+        "order_id": "order_PgXy91RDDu99VR",
+        "payment_id": "pay_PgXyGrjTxOkhnd",
+        "invoice_no": "INV-1736251477161"
+    },
+    "payment_id": "pay_PgXyGrjTxOkhnd",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
