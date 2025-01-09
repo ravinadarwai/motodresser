@@ -18,6 +18,7 @@ $stmt = $con->prepare("SELECT id FROM customer_login WHERE full_name = ?");
 $stmt->bind_param("s", $user_full_name);
 $stmt->execute();
 $result = $stmt->get_result();
+
 $user_id = $result->fetch_assoc()['id'];
 
 // Get customer ID from session
@@ -273,7 +274,6 @@ text-align: left;
 }
 }
 </style>
-<svg width="100%" height="50px">...</svg>
 
 </head>
 
@@ -432,7 +432,7 @@ return;
 
 // Update the discount display and total
 document.getElementById('discount').innerText = `-₹${discount.toFixed(2)}`;
-updateTotal(discount);
+updateTotal(discount); 
 
 // Show success alert
 Swal.fire('Success!', 'Discount applied successfully!', 'success');
@@ -458,96 +458,122 @@ document.getElementById('total').innerText = `₹${newTotal.toFixed(2)}`;
 </script>
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 
-<script>
-async function placeOrder() {
-const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
-const address = document.getElementById('saved-address').value;
-const customerId = <?= json_encode($customer_login_id ?? null) ?>;
+<script>async function placeOrder() {
+    const paymentMethod = document.querySelector('input[name="payment-method"]:checked').value;
+    const address = document.getElementById('saved-address').value;
+    const customerId = <?= json_encode($customer_login_id ?? null) ?>;
 
-const cartItems = document.querySelectorAll('.cart-item');
-const productsOrdered = Array.from(cartItems).map(item => ({
-productId: item.dataset.productId,
-quantity: parseInt(item.querySelector('.quantity_vs').innerText),
-color: item.querySelector('p:nth-child(2)').innerText.replace('Color: ', ''),
-size: item.querySelector('p:nth-child(3)').innerText.replace('Size: ', '')
-}));
+    const cartItems = document.querySelectorAll('.cart-item');
+    const productsOrdered = Array.from(cartItems).map(item => ({
+        productId: item.dataset.productId,
+        quantity: parseInt(item.querySelector('.quantity_vs').innerText),
+        color: item.querySelector('p:nth-child(2)').innerText.replace('Color: ', ''),
+        size: item.querySelector('p:nth-child(3)').innerText.replace('Size: ', '')
+    }));
 
-const totalAmount = parseFloat(document.getElementById('total').innerText.replace('₹', '').replace(',', ''));
-const invoiceNo = 'INV-' + Date.now();
+    const totalAmount = parseFloat(document.getElementById('total').innerText.replace('₹', '').replace(',', ''));
+    const invoiceNo = 'INV-' + Date.now();
 
-const orderDetails = {
-customer_id: customerId,
-total_amount: totalAmount,
-invoice_no: invoiceNo,
-qty: productsOrdered.reduce((sum, item) => sum + item.quantity, 0),
-payment_method: paymentMethod,
-products_ordered: JSON.stringify(productsOrdered)
+    const orderDetails = {
+        customer_id: customerId,
+        total_amount: totalAmount,
+        invoice_no: invoiceNo,
+        qty: productsOrdered.reduce((sum, item) => sum + item.quantity, 0),
+        payment_method: paymentMethod,
+        products_ordered: productsOrdered
+    };
+
+    if (paymentMethod === 'cod') {
+        const formData = new FormData();
+        Object.keys(orderDetails).forEach(key => {
+            if (key === 'products_ordered') {
+                formData.append(key, JSON.stringify(orderDetails[key]));
+            } else {
+                formData.append(key, orderDetails[key]);
+            }
+        });
+
+        const response = await fetch('place_order.php', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.text();
+        console.log(data); // For debugging
+    } else {
+        const orderData = {
+        customer_id: customerId,
+        total_amount: totalAmount,
+        invoice_no: invoiceNo,
+        qty: productsOrdered.reduce((sum, item) => sum + item.quantity, 0),
+        products_ordered: productsOrdered
+    };
+
+    const response = await fetch('create_razorpay_order.php', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(orderData)
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+        const options = {
+            key: 'rzp_test_uxKdzs7v17Ts4S', // Your Razorpay Key ID
+            amount: totalAmount * 100, // Amount in paise
+            currency: 'INR',
+            order_id: data.order_id, // Received from backend
+            name: 'Your Store Name',
+            description: 'Order Payment',
+            handler: function(response) {
+                // After successful payment
+                const paymentDetails = {
+                    razorpay_payment_id: response.razorpay_payment_id,
+                    razorpay_order_id: response.razorpay_order_id,
+                    razorpay_signature: response.razorpay_signature,
+                    order_id: data.order_id
+                };
+                const combinedData = {
+    orderData: orderData,
+    paymentDetails: paymentDetails
 };
+                // Save payment details in the database
+                fetch('verify_razorpay_payment.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(combinedData)
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire('Success!', 'Payment successful!', 'success')
+                        .then(() => {
+                            location.reload(); // Refresh page after payment
+                        });
+                    } else {
+                        Swal.fire('Error!', 'Failed to save payment details.', 'error');
+                    }
+                });
+            },
+            prefill: {
+                name: 'Customer Name', // Customer's name
+                email: 'customer@example.com', // Customer's email
+                contact: '1234567890' // Customer's contact
+            },
+            theme: {
+                color: '#F37254' // Razorpay theme color
+            }
+        };
 
-if (paymentMethod === 'cod') {
-const response = await fetch('place_order.php', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(orderDetails)
-});
-
-const data = await response.json();
-if (data.success) {
-Swal.fire('Order Placed', `Order successfully placed. Invoice: ${data.invoice_no}`, 'success')
-.then(() => window.location.href = 'my_orders.php');
-} else {
-Swal.fire('Error', data.message || 'Could not place order.', 'error');
-}
-} else {
-const razorpayResponse = await fetch('create_razorpay_order.php', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ amount: totalAmount, invoice_no: invoiceNo })
-});
-
-const razorpayData = await razorpayResponse.json();
-if (razorpayData.success) {
-const options = {
-key: 'rzp_test_uxKdzs7v17Ts4S',
-amount: razorpayData.amount,
-currency: razorpayData.currency,
-name: 'Your Company Name',
-description: 'Order Payment',
-order_id: razorpayData.order_id,
-handler: async function (response) {
-const paymentDetails = {
-order_id: response.razorpay_order_id,
-payment_id: response.razorpay_payment_id,
-invoice_no: invoiceNo
-};
-
-const paymentResponse = await fetch('verify_razorpay_payment.php', {
-method: 'POST',
-headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify(paymentDetails)
-});
-
-const paymentData = await paymentResponse.json();
-if (paymentData.success) {
-Swal.fire('Payment Successful', `Order placed successfully. Invoice: ${invoiceNo}`, 'success')
-.then(() => window.location.href = 'my_orders.php');
-} else {
-Swal.fire('Error', paymentData.message || 'Payment verification failed.', 'error');
-}
-},
-prefill: {
-name: 'Customer Name',
-email: 'customer@example.com',
-contact: '9999999999'
-},
-theme: { color: '#F37254' }
-};
-
-const razorpay = new Razorpay(options);
-razorpay.open();
-} else {
-Swal.fire('Error', razorpayData.message || 'Could not create Razorpay order.', 'error');
-}
+        const rzp = new Razorpay(options);
+        rzp.open();
+    } else {
+        Swal.fire('Error!', 'Failed to create order.', 'error');
+    }
 }
 }
 </script>

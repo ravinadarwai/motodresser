@@ -1,64 +1,104 @@
 <?php
-require 'razorpay_config.php'; // Include Razorpay SDK and configuration
-
-// Get raw POST data
-$data = json_decode(file_get_contents('php://input'), true);
-
-// Extract required parameters
-$paymentId = $data['payment_id'] ?? null;
-$amount = $data['amount'] ?? null;
-$qty = $data['qty'] ?? null;
-$productsOrdered = $data['products_ordered'] ?? null;
-$orderId = $data['order_id'] ?? null;
-$invoiceNo = $data['invoice_no'] ?? null;
-$customerId = $data['customer_id'] ?? null;
-
-// Response array to store the output
-$response = [];
+// verify_razorpay_payment.php
+include './includes/db.php'; // Include your database connection
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
 try {
-    // Validate inputs
-    if (!$paymentId || !$amount || !$qty || !$productsOrdered || !$orderId || !$invoiceNo || !$customerId) {
-        throw new Exception("Missing required parameters");
+    // Get the combined data from the POST request
+    $combinedData = json_decode(file_get_contents('php://input'), true);
+
+    if (!$combinedData || !isset($combinedData['orderData'], $combinedData['paymentDetails'])) {
+        throw new Exception("Invalid input data");
     }
 
-    // Verify payment with Razorpay
-    $payment = $razorpay->payments->fetch($paymentId); // Fetch payment details
+    $orderData = $combinedData['orderData']; // Extract order data
+    $paymentDetails = $combinedData['paymentDetails']; // Extract payment details
 
-    if ($payment->status === 'captured') {
-        // Payment successful, insert order details into the database
-        $orderQuery = "INSERT INTO my_orders (customer_id, total_amount, invoice_no, qty, payment_method, products_ordered) 
+    // Extract payment details
+    $razorpayPaymentId = $paymentDetails['razorpay_payment_id'];
+    $razorpayOrderId = $paymentDetails['razorpay_order_id'];
+    $razorpaySignature = $paymentDetails['razorpay_signature'];
+
+    // Extract order details
+    $invoiceNo = $orderData['invoice_no'];
+    $totalAmount = $orderData['total_amount'];
+    $paymentMode = 'online';
+    $refNo = rand(100000, 999999);
+    $code = rand(1000, 9999);
+    $paymentDate = date('Y-m-d H:i:s');
+    $customerId = $orderData['customer_id'];
+    $qty = $orderData['qty'];
+    $productsOrdered = $orderData['products_ordered'];
+    file_put_contents('payment_verification_log.txt', file_get_contents('php://input') . PHP_EOL, FILE_APPEND);
+
+    // Convert products_ordered array to JSON
+    $productsOrderedJson = json_encode($productsOrdered);
+
+    // Start transaction
+    $pdo->beginTransaction();
+
+    // Fetch data from the cart table for the customer
+    $cartQuery = "SELECT * FROM cart WHERE customer_login_id = ?";
+    $cartStmt = $pdo->prepare($cartQuery);
+    $cartStmt->execute([$customerId]);
+    $cartItems = $cartStmt->fetchAll(PDO::FETCH_ASSOC);
+
+    if (empty($cartItems)) {
+        throw new Exception("No items in the cart for this customer.");
+    }
+
+    // Insert into my_orders table
+    $orderQuery = "INSERT INTO my_orders (customer_id, total_amount, invoice_no, qty, payment_method, products_ordered, payment_id, payment_status, order_date) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, 'completed', NOW())";
+    $orderStmt = $pdo->prepare($orderQuery);
+    $orderStmt->execute([$customerId, $totalAmount, $invoiceNo, $qty, $paymentMode, $productsOrderedJson, $razorpayPaymentId]);
+
+    // Get the last inserted order ID
+    // $orderId = $pdo->lastInsertId();
+
+    // // Insert cart items into the order details table
+    // foreach ($cartItems as $item) {
+    //     $orderDetailsQuery = "INSERT INTO order_details (order_id, product_id, qty, color, size, price) 
+    //                           VALUES (?, ?, ?, ?, ?, ?)";
+    //     $orderDetailsStmt = $pdo->prepare($orderDetailsQuery);
+    //     $orderDetailsStmt->execute([
+    //         $orderId,
+    //         $item['p_id'],
+    //         $item['qty'],
+    //         $item['color'],
+    //         $item['size'],
+    //         $item['p_price']
+    //     ]);
+    // }
+
+    // Insert payment details into payment_signatures table
+    $signatureQuery = "INSERT INTO payment_signatures (invoice_no, amount, payment_mode, ref_no, code, payment_date) 
                        VALUES (?, ?, ?, ?, ?, ?)";
+    $signatureStmt = $pdo->prepare($signatureQuery);
+    $signatureStmt->execute([$invoiceNo, $totalAmount, $paymentMode, $refNo, $code, $paymentDate]);
 
-        $stmt = $con->prepare($orderQuery);
-        $paymentMethod = 'online'; // Set payment method
-        $stmt->bind_param("idssss", $customerId, $amount, $invoiceNo, $qty, $paymentMethod, $productsOrdered);
+    // Clear the cart after successful order placement
+    $clearCartQuery = "DELETE FROM cart WHERE customer_login_id = ?";
+    $clearCartStmt = $pdo->prepare($clearCartQuery);
+    $clearCartStmt->execute([$customerId]);
 
-        if ($stmt->execute()) {
-            $response = ['success' => true, 'message' => 'Payment verified and order saved successfully'];
-        } else {
-            throw new Exception("Failed to save order to the database");
-        }
-        $stmt->close();
-    } else {
-        throw new Exception("Payment not captured. Status: " . $payment->status);
+    // Log for debugging
+    file_put_contents('debug.log', "Order Data: " . print_r($orderData, true) . PHP_EOL, FILE_APPEND);
+    file_put_contents('debug.log', "Payment Details: " . print_r($paymentDetails, true) . PHP_EOL, FILE_APPEND);
+
+    // Commit transaction
+    $pdo->commit();
+
+    // Respond with a success message
+    echo json_encode(['success' => true]);
+
+} catch (Exception $e) {
+    // Rollback transaction on error
+    if ($pdo->inTransaction()) {
+        $pdo->rollBack();
     }
-} catch (\Razorpay\Api\Errors\BadRequestError $e) {
-    $response = ['success' => false, 'message' => 'Razorpay API Error: ' . $e->getMessage()];
-} catch (\Exception $e) {
-    $response = ['success' => false, 'message' => 'Error: ' . $e->getMessage()];
+    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
 }
-
-// Log details for debugging
-$logData = [
-    'time' => date('Y-m-d H:i:s'),
-    'input_data' => $data,
-    'payment_id' => $paymentId,
-    'response' => $response,
-];
-file_put_contents('payment_verification_log.txt', json_encode($logData, JSON_PRETTY_PRINT) . PHP_EOL, FILE_APPEND);
-
-// Return JSON response
-header('Content-Type: application/json');
-echo json_encode($response);
 ?>

@@ -1,9 +1,22 @@
 <?php
 session_start();
-$user_id = $_SESSION['username']; // Assuming user_id is stored in session after login
+include './includes/db.php'; // Make sure your DB connection file is correct
+
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+$user_full_name = $_SESSION['username'];
+
+// Fetch customer_login_id based on full_name
+$stmt = $con->prepare("SELECT id FROM customer_login WHERE full_name = ?");
+$stmt->bind_param("s", $user_full_name);
+$stmt->execute();
+$result = $stmt->get_result();
+$user_id = $result->fetch_assoc()['id'];
+
 
 // Database connection
-include './includes/db.php'; // Make sure your DB connection file is correct
 
 // Query to fetch the orders for the logged-in user
 $query = "SELECT * FROM my_orders WHERE customer_id = '$user_id' ORDER BY order_date DESC";

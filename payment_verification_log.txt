@@ -12,3 +12,108 @@ Log file created for payment verification process.
         "message": "Error: Missing required parameters"
     }
 }
+{
+    "time": "2025-01-08 07:49:40",
+    "input_data": {
+        "order_id": "order_Pgr89isuYoqoBf",
+        "payment_id": "pay_Pgr8MalaJBz3fo",
+        "invoice_no": "INV-1736318955461"
+    },
+    "payment_id": "pay_Pgr8MalaJBz3fo",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 08:14:11",
+    "input_data": {
+        "order_id": "order_PgrYCevd3VDMW4",
+        "payment_id": "pay_PgrYGdQyPBuzNf",
+        "invoice_no": "INV-1736320434414"
+    },
+    "payment_id": "pay_PgrYGdQyPBuzNf",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 08:17:16",
+    "input_data": {
+        "order_id": "order_PgrbNLXnBgNjty",
+        "payment_id": "pay_PgrbSUsBCbUKuC",
+        "invoice_no": "INV-1736320615305"
+    },
+    "payment_id": "pay_PgrbSUsBCbUKuC",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 08:20:56",
+    "input_data": {
+        "order_id": "order_PgrfLJAVbRqyjR",
+        "payment_id": "pay_PgrfPkxIY4qRMa",
+        "invoice_no": "INV-1736320840636"
+    },
+    "payment_id": "pay_PgrfPkxIY4qRMa",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 08:22:14",
+    "input_data": {
+        "order_id": "order_PgrgeXZbGqa6P1",
+        "payment_id": "pay_Pgrgm0VqVFG5is",
+        "invoice_no": "INV-1736320915026"
+    },
+    "payment_id": "pay_Pgrgm0VqVFG5is",
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters: amount, qty, products_ordered, customer_id"
+    }
+}
+{
+    "time": "2025-01-08 09:32:08",
+    "input_data": null,
+    "payment_id": null,
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 09:32:36",
+    "input_data": null,
+    "payment_id": null,
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 09:37:18",
+    "input_data": null,
+    "payment_id": null,
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{
+    "time": "2025-01-08 10:41:40",
+    "input_data": null,
+    "payment_id": null,
+    "response": {
+        "success": false,
+        "message": "Error: Missing required parameters"
+    }
+}
+{"orderData":{"customer_id":14,"total_amount":2718,"invoice_no":"INV-1736402761877","qty":2,"products_ordered":[{"productId":"66","quantity":2,"color":"Black","size":"XXL"}]},"paymentDetails":{"razorpay_payment_id":"pay_PhEvj8UvB12349","razorpay_order_id":"order_PhEvdgaIgSKB8M","razorpay_signature":"3756e69dfbfc05558be8883052adc998e8de593e2d44ef509c02f5ae2eda1e53","order_id":"order_PhEvdgaIgSKB8M"}}
+{"orderData":{"customer_id":14,"total_amount":2718,"invoice_no":"INV-1736403113015","qty":2,"products_ordered":[{"productId":"66","quantity":2,"color":"Black","size":"XXL"}]},"paymentDetails":{"razorpay_payment_id":"pay_PhF1t6DfMj0LIX","razorpay_order_id":"order_PhF1ny9wU1DrYP","razorpay_signature":"a5fe3f502ead83973316f13d36622244c0c5412de3b935625bc9221682022212","order_id":"order_PhF1ny9wU1DrYP"}}
+{"orderData":{"customer_id":14,"total_amount":2718,"invoice_no":"INV-1736403407344","qty":2,"products_ordered":[{"productId":"66","quantity":2,"color":"Black","size":"XXL"}]},"paymentDetails":{"razorpay_payment_id":"pay_PhF73tpMMzDUDw","razorpay_order_id":"order_PhF6zHrRZcAdrF","razorpay_signature":"7d8554c61e96e867aa7a83cfacb4ce1472a233db1987601f35731d444f689d06","order_id":"order_PhF6zHrRZcAdrF"}}
+{"orderData":{"customer_id":14,"total_amount":2718,"invoice_no":"INV-1736403784544","qty":2,"products_ordered":[{"productId":"66","quantity":2,"color":"Black","size":"XXL"}]},"paymentDetails":{"razorpay_payment_id":"pay_PhFDj6NCnzdTUt","razorpay_order_id":"order_PhFDdkBPOZVMxF","razorpay_signature":"7e243920c9109caaf1b559d8ca7e79e7c38d81819c72eedfba6828581883eb55","order_id":"order_PhFDdkBPOZVMxF"}}

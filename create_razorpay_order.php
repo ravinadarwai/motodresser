@@ -1,19 +1,24 @@
 <?php
+// create_order.php
+
 require 'razorpay_config.php'; 
+use Razorpay\Api\Api;
 
-$data = json_decode(file_get_contents('php://input'), true);
-$amount = $data['amount'] * 100; // Convert to paise
-$invoiceNo = $data['invoice_no'];
+$keyId = 'rzp_test_uxKdzs7v17Ts4S';
+$keySecret = 'UHdx7VAXCytr5Bf0AXMev5Iw';
 
-try {
-    $order = $razorpay->order->create([
-        'amount' => $amount,
-        'currency' => 'INR',
-        'receipt' => $invoiceNo,
-        'payment_capture' => 1 // Auto-capture payment
-    ]);
+$api = new Api($keyId, $keySecret);
 
-    echo json_encode(['success' => true, 'order_id' => $order['id'], 'amount' => $amount, 'currency' => 'INR']);
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => $e->getMessage()]);
-}
+// Get order data from the request
+$orderData = json_decode(file_get_contents('php://input'), true);
+
+// Create Razorpay order
+$order = $api->order->create([
+    'amount' => $orderData['total_amount'] * 100, // Amount in paise
+    'currency' => 'INR',
+    'payment_capture' => 1 // Automatic payment capture
+]);
+
+// Send order ID back to the frontend
+echo json_encode(['success' => true, 'order_id' => $order->id]);
+?>
